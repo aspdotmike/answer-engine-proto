@@ -525,19 +525,22 @@ export default function AnswerFrameworkPrototype() {
   };
 
   const getPanelStyles = () => {
-    const base = 'bg-white shadow-2xl flex flex-col rounded-2xl overflow-hidden';
+    const base = 'bg-white shadow-2xl flex flex-col rounded-2xl sm:rounded-2xl overflow-hidden';
     const hasChat = activeConsideration !== null;
-    const panelWidth = hasChat ? 'w-[800px] max-w-[calc(100%-2rem)]' : 'w-[320px]';
+    // Mobile: full width, Desktop: fixed widths
+    const panelWidth = hasChat 
+      ? 'w-full sm:w-[800px] sm:max-w-[calc(100%-2rem)]' 
+      : 'w-full sm:w-[320px]';
     
     switch (panelPosition) {
       case 'left': 
-        return `${base} absolute top-0 bottom-0 left-0 ${panelWidth}`;
+        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:left-0 sm:right-auto ${panelWidth}`;
       case 'right': 
-        return `${base} absolute top-0 bottom-0 right-0 ${panelWidth}`;
+        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto ${panelWidth}`;
       case 'bottom': 
-        return `${base} absolute left-1/2 -translate-x-1/2 bottom-0 h-[50vh] max-h-[500px] w-full max-w-4xl`;
+        return `${base} absolute left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 bottom-0 h-[70vh] sm:h-[50vh] sm:max-h-[500px] w-full sm:max-w-4xl rounded-b-none`;
       default: 
-        return `${base} absolute top-0 bottom-0 right-0 ${panelWidth}`;
+        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto ${panelWidth}`;
     }
   };
 
@@ -1122,6 +1125,13 @@ export default function AnswerFrameworkPrototype() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
         <div className="flex items-center gap-2">
+          {/* Mobile back button */}
+          <button 
+            onClick={handleCloseChat} 
+            className="sm:hidden p-1.5 -ml-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </button>
           <h3 className="font-semibold text-gray-900 text-sm">{activeConsideration.title}</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -1143,7 +1153,7 @@ export default function AnswerFrameworkPrototype() {
               </svg>
             </button>
           )}
-          <button onClick={handleCloseChat} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={handleCloseChat} className="hidden sm:block p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -1244,17 +1254,17 @@ export default function AnswerFrameworkPrototype() {
           <p className="text-xs text-gray-400 mb-2">Answer agent suggestions</p>
           
           {/* Topic chips */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 sm:gap-1.5 mb-3">
             {getTopicChips().map((chip, i) => {
               const isSelected = selectedIdeaIndexes.includes(i);
               return (
                 <button
                   key={i}
                   onClick={() => toggleIdeaSelection(i)}
-                  className={`px-2.5 py-1 rounded-full text-xs transition-all ${
+                  className={`px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs transition-all ${
                     isSelected 
                       ? 'bg-teal-500 text-white' 
-                      : 'bg-white border border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50 active:bg-amber-100'
                   }`}
                 >
                   {chip}
@@ -1265,18 +1275,18 @@ export default function AnswerFrameworkPrototype() {
           
           {/* Focus input with chips */}
           <div className="mb-3">
-            <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus-within:ring-1 focus-within:ring-amber-400 focus-within:border-amber-400 min-h-[34px]">
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 sm:px-2 sm:py-1.5 border border-gray-200 rounded-lg bg-white focus-within:ring-1 focus-within:ring-amber-400 focus-within:border-amber-400 min-h-[44px] sm:min-h-[34px]">
               {focusChips.map((chip, i) => (
                 <span 
                   key={i}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs"
+                  className="inline-flex items-center gap-1 px-2 py-1 sm:py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs"
                 >
                   {chip}
                   <button 
                     onClick={() => setFocusChips(prev => prev.filter((_, idx) => idx !== i))}
-                    className="hover:text-amber-600 transition-colors"
+                    className="hover:text-amber-600 transition-colors p-0.5"
                   >
-                    <X size={10} />
+                    <X size={12} className="sm:w-[10px] sm:h-[10px]" />
                   </button>
                 </span>
               ))}
@@ -1307,7 +1317,7 @@ export default function AnswerFrameworkPrototype() {
                   }
                 }}
                 placeholder={focusChips.length === 0 ? "Focus on... (separate by commas)" : ""}
-                className="flex-1 min-w-[80px] text-xs focus:outline-none bg-transparent"
+                className="flex-1 min-w-[80px] text-sm sm:text-xs focus:outline-none bg-transparent"
               />
             </div>
           </div>
@@ -1369,11 +1379,11 @@ export default function AnswerFrameworkPrototype() {
               }, 2000);
             }}
             disabled={(selectedIdeaIndexes.length === 0 && !regeneratePrompt.trim() && focusChips.length === 0) || isGeneratingResponse}
-            className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`w-full px-3 py-3 sm:py-2 rounded-lg text-sm sm:text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
               isGeneratingResponse
                 ? 'bg-amber-300 text-gray-700 cursor-wait'
                 : selectedIdeaIndexes.length > 0 || regeneratePrompt.trim() || focusChips.length > 0
-                  ? 'bg-amber-400 text-gray-900 hover:bg-amber-500'
+                  ? 'bg-amber-400 text-gray-900 hover:bg-amber-500 active:bg-amber-600'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
@@ -1412,12 +1422,12 @@ export default function AnswerFrameworkPrototype() {
             />
             <div className="absolute bottom-2 right-2 flex items-center gap-1">
               {!showAIReference && (
-                <button onClick={handleGetAIHelp} className="p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors" title="Get AI help">
-                  <Sparkles size={16} />
+                <button onClick={handleGetAIHelp} className="p-2 sm:p-1.5 text-gray-400 hover:text-amber-500 hover:bg-amber-50 active:bg-amber-100 rounded-lg transition-colors" title="Get AI help">
+                  <Sparkles size={18} className="sm:w-4 sm:h-4" />
                 </button>
               )}
-              <button onClick={handleSendMessageWithFollowUp} disabled={!userInput.trim()} className={`p-1.5 rounded-lg transition-colors ${userInput.trim() ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-gray-100 text-gray-400'}`}>
-                <Send size={16} />
+              <button onClick={handleSendMessageWithFollowUp} disabled={!userInput.trim()} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${userInput.trim() ? 'bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-800' : 'bg-gray-100 text-gray-400'}`}>
+                <Send size={18} className="sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>
@@ -1483,19 +1493,19 @@ export default function AnswerFrameworkPrototype() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-gray-50 p-6 relative">
+      <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 relative">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-4 cursor-pointer hover:text-gray-700">
             <ArrowLeft size={16} />
             <span>Back to Exploration</span>
           </div>
           
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">
+          <h1 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
             What is the feasibility of retrofitting existing doors with the Assa Abloy system?
           </h1>
 
           {/* Answer Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Answer</h2>
               <div className="flex items-center gap-3">
@@ -1627,13 +1637,13 @@ export default function AnswerFrameworkPrototype() {
           </div>
 
           {/* Reviewers Section */}
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="mt-4 sm:mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <h3 className="font-medium text-gray-900 mb-2">Reviewers</h3>
             <p className="text-gray-500 text-sm">None</p>
           </div>
           
           {/* Demo trigger for loading animation */}
-          <div className="mt-6 bg-gray-100 rounded-xl p-4">
+          <div className="mt-4 sm:mt-6 bg-gray-100 rounded-xl p-4">
             <p className="text-xs text-gray-500 mb-2">Demo Controls</p>
             <button 
               onClick={() => {
@@ -1664,30 +1674,30 @@ export default function AnswerFrameworkPrototype() {
           </div>
           
           {/* Spacer for floating button */}
-          <div className="h-24" />
+          <div className="h-28 sm:h-24" />
         </div>
       </div>
 
       {/* Floating Answer Engine Panel - Hidden during drag */}
       {showEnginePanel && !isDragging && (
         <>
-          <div className="fixed inset-0 z-40" onClick={handleClosePanel} />
-          <div className="fixed inset-4 z-50 flex items-center justify-center pointer-events-none">
+          <div className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent" onClick={handleClosePanel} />
+          <div className="fixed inset-0 sm:inset-4 z-50 flex items-center justify-center pointer-events-none">
             {panelCollapsed ? (
-              /* Collapsed thin bar */
+              /* Collapsed thin bar - Bottom on mobile, side on desktop */
               <div className={`pointer-events-auto absolute ${
                 panelPosition === 'bottom' 
                   ? 'bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl' 
                   : panelPosition === 'left'
-                    ? 'top-0 bottom-0 left-0'
-                    : 'top-0 bottom-0 right-0'
-              }`}>
+                    ? 'bottom-0 left-0 right-0 sm:bottom-auto sm:right-auto sm:top-0'
+                    : 'bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:top-0'
+              } ${panelPosition !== 'bottom' ? 'sm:h-full' : ''}`}>
                 <div 
                   onClick={() => setPanelCollapsed(false)}
                   className={`bg-white shadow-2xl cursor-pointer hover:shadow-xl transition-all ${
                     panelPosition === 'bottom'
-                      ? 'h-14 rounded-t-2xl flex items-center justify-between px-6 border-t border-x border-gray-200'
-                      : 'w-12 rounded-2xl flex flex-col h-full border border-gray-200 items-center'
+                      ? 'h-14 rounded-t-2xl flex items-center justify-between px-4 sm:px-6 border-t border-x border-gray-200'
+                      : 'h-14 sm:h-full sm:w-12 rounded-t-2xl sm:rounded-2xl sm:rounded-t-2xl flex items-center sm:items-center sm:flex-col justify-between sm:justify-start px-4 sm:px-0 border-t sm:border border-x sm:border-x border-gray-200'
                   }`}
                 >
                   {panelPosition === 'bottom' ? (
@@ -1698,8 +1708,8 @@ export default function AnswerFrameworkPrototype() {
                         </div>
                         <span className="font-semibold text-gray-900 text-sm">Answer Engine</span>
                       </div>
-                      {/* Consideration status chips */}
-                      <div className="flex items-center gap-2">
+                      {/* Consideration status chips - hidden on mobile */}
+                      <div className="hidden sm:flex items-center gap-2">
                         {considerations.map((consideration) => {
                           const isCompleted = snippets.some(s => s.consideration === consideration.title);
                           const isActive = activeConsideration?.id === consideration.id;
@@ -1724,37 +1734,67 @@ export default function AnswerFrameworkPrototype() {
                     </>
                   ) : (
                     <>
-                      {/* Header icon */}
-                      <div className="p-2 bg-gradient-to-b from-teal-600 to-teal-700 rounded-t-2xl w-full flex justify-center">
-                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                          <Sparkles size={14} className="text-white" />
+                      {/* Mobile: horizontal bar */}
+                      <div className="flex sm:hidden items-center gap-3 flex-1">
+                        <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                          <Sparkles size={16} className="text-teal-600" />
                         </div>
+                        <span className="font-semibold text-gray-900 text-sm">Answer Engine</span>
+                        <div className="flex items-center gap-1 ml-auto">
+                          {considerations.map((consideration) => {
+                            const isCompleted = snippets.some(s => s.consideration === consideration.title);
+                            const isActive = activeConsideration?.id === consideration.id;
+                            return (
+                              <div 
+                                key={consideration.id}
+                                className={`w-2 h-2 rounded-full ${
+                                  isCompleted
+                                    ? 'bg-green-500'
+                                    : isActive
+                                      ? 'bg-teal-500'
+                                      : 'bg-gray-300'
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                        <ChevronUp size={18} className="text-gray-400 ml-2" />
                       </div>
                       
-                      {/* Progress dots */}
-                      <div className="flex-1 py-4 flex flex-col items-center gap-2">
-                        {considerations.map((consideration) => {
-                          const isCompleted = snippets.some(s => s.consideration === consideration.title);
-                          const isActive = activeConsideration?.id === consideration.id;
-                          return (
-                            <div 
-                              key={consideration.id}
-                              className={`w-2 h-2 rounded-full transition-all ${
-                                isCompleted
-                                  ? 'bg-green-500'
-                                  : isActive
-                                    ? 'bg-teal-500 scale-125'
-                                    : 'bg-gray-300'
-                              }`}
-                              title={consideration.title}
-                            />
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Expand icon */}
-                      <div className="p-3 border-t border-gray-100">
-                        <Maximize2 size={14} className="text-gray-400" />
+                      {/* Desktop: vertical bar */}
+                      <div className="hidden sm:flex sm:flex-col sm:items-center sm:h-full">
+                        {/* Header icon */}
+                        <div className="p-2 bg-gradient-to-b from-teal-600 to-teal-700 rounded-t-2xl w-full flex justify-center">
+                          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                            <Sparkles size={14} className="text-white" />
+                          </div>
+                        </div>
+                        
+                        {/* Progress dots */}
+                        <div className="flex-1 py-4 flex flex-col items-center gap-2">
+                          {considerations.map((consideration) => {
+                            const isCompleted = snippets.some(s => s.consideration === consideration.title);
+                            const isActive = activeConsideration?.id === consideration.id;
+                            return (
+                              <div 
+                                key={consideration.id}
+                                className={`w-2 h-2 rounded-full transition-all ${
+                                  isCompleted
+                                    ? 'bg-green-500'
+                                    : isActive
+                                      ? 'bg-teal-500 scale-125'
+                                      : 'bg-gray-300'
+                                }`}
+                                title={consideration.title}
+                              />
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Expand icon */}
+                        <div className="p-3 border-t border-gray-100">
+                          <Maximize2 size={14} className="text-gray-400" />
+                        </div>
                       </div>
                     </>
                   )}
@@ -1763,21 +1803,22 @@ export default function AnswerFrameworkPrototype() {
             ) : (
               /* Expanded panel */
               <div className={`${getPanelStyles()} pointer-events-auto`}>
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700 rounded-t-2xl flex-shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                        <Sparkles size={16} className="text-white" />
+                <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700 rounded-t-2xl sm:rounded-t-2xl flex-shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                        <Sparkles size={14} className="text-white sm:hidden" />
+                        <Sparkles size={16} className="text-white hidden sm:block" />
                       </div>
-                      <span className="font-semibold text-white">Answer Engine</span>
+                      <span className="font-semibold text-white text-sm sm:text-base">Answer Engine</span>
                     </div>
                     {snippets.length > 0 && (
-                      <span className="text-xs text-white/70">
-                        ({snippets.length} snippet{snippets.length !== 1 ? 's' : ''} collected)
+                      <span className="text-[10px] sm:text-xs text-white/70 truncate">
+                        ({snippets.length} snippet{snippets.length !== 1 ? 's' : ''})
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button 
                       onClick={() => setPanelCollapsed(true)}
                       className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
@@ -1791,12 +1832,12 @@ export default function AnswerFrameworkPrototype() {
                   </div>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden">
-                  <div className={`${activeConsideration ? 'w-1/4 min-w-[200px] border-r border-gray-200' : 'flex-1'} p-4 overflow-auto transition-all duration-300`}>
+                <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
+                  <div className={`${activeConsideration ? 'hidden sm:block sm:w-1/4 sm:min-w-[200px] border-b sm:border-b-0 sm:border-r border-gray-200' : 'flex-1'} p-4 overflow-auto transition-all duration-300`}>
                     {ConsiderationsPanel()}
                   </div>
                   {activeConsideration && (
-                    <div className="w-3/4 p-4 overflow-hidden bg-gray-50/50">
+                    <div className="flex-1 sm:w-3/4 p-4 overflow-hidden bg-gray-50/50">
                       {ChatPanel()}
                     </div>
                   )}
@@ -1809,32 +1850,32 @@ export default function AnswerFrameworkPrototype() {
 
       {/* Floating Answer Engine CTA - Hidden when panel is open or dragging */}
       {!showEnginePanel && !isDragging && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30">
+        <div className="fixed bottom-4 sm:bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-30">
           {isLoadingConsiderations ? (
-            <div className="w-[320px] px-5 py-3 bg-gradient-to-r from-teal-600 via-teal-500 to-teal-600 rounded-full shadow-lg shadow-teal-500/40 flex items-center gap-3 animate-gradient-x animate-glow">
+            <div className="w-full sm:w-[320px] px-4 sm:px-5 py-3 bg-gradient-to-r from-teal-600 via-teal-500 to-teal-600 rounded-full shadow-lg shadow-teal-500/40 flex items-center gap-3 animate-gradient-x animate-glow">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center relative overflow-hidden flex-shrink-0">
                 <Sparkles className="text-white z-10" size={16} />
                 <div className="absolute inset-0 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 <div className="absolute inset-0 bg-white/20 animate-ping" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="text-white font-semibold text-sm">Preparing Answer Engine</h3>
-                <p key={loadingStep} className="text-teal-100 text-xs animate-fadeIn">{loadingSteps[loadingStep]}</p>
+                <p key={loadingStep} className="text-teal-100 text-xs animate-fadeIn truncate">{loadingSteps[loadingStep]}</p>
               </div>
             </div>
           ) : (
             <div 
               onClick={handleStartEngine} 
-              className="px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 rounded-full cursor-pointer hover:from-teal-700 hover:to-teal-800 transition-all group shadow-lg hover:shadow-xl flex items-center gap-3"
+              className="w-full sm:w-auto px-4 sm:px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 rounded-full cursor-pointer hover:from-teal-700 hover:to-teal-800 transition-all group shadow-lg hover:shadow-xl flex items-center gap-3"
             >
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                 <Sparkles className="text-white" size={16} />
               </div>
-              <div className="pr-1">
+              <div className="flex-1 min-w-0 pr-1">
                 <h3 className="text-white font-semibold text-sm">Answer Engine</h3>
-                <p className="text-teal-100 text-xs">{snippets.length > 0 ? `${snippets.length} of ${considerations.length} considerations explored` : 'Leverage the Answer Framework'}</p>
+                <p className="text-teal-100 text-xs truncate">{snippets.length > 0 ? `${snippets.length} of ${considerations.length} explored` : 'Leverage the Answer Framework'}</p>
               </div>
-              <ChevronRight className="text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" size={18} />
+              <ChevronRight className="text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0" size={18} />
             </div>
           )}
         </div>
@@ -1896,6 +1937,13 @@ export default function AnswerFrameworkPrototype() {
           50% { box-shadow: 0 10px 60px -10px rgba(20, 184, 166, 0.8); }
         }
         .animate-glow { animation: glow 1.5s ease-in-out infinite; }
+        
+        /* Mobile safe area support */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+          }
+        }
       `}</style>
     </div>
   );
