@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ChevronRight, ChevronUp, ChevronDown, X, Copy, Check, MessageSquare, Lightbulb, ArrowLeft, Send, HelpCircle, GripVertical, Plus, CheckCircle2, Pause, Minimize2, Maximize2 } from 'lucide-react';
+import { Sparkles, ChevronRight, ChevronUp, ChevronDown, X, Copy, Check, MessageSquare, Lightbulb, ArrowLeft, Send, HelpCircle, GripVertical, Plus, CheckCircle2, Pause, Minimize2, Maximize2, Clock } from 'lucide-react';
 
 export default function AnswerFrameworkPrototype() {
   const [showEnginePanel, setShowEnginePanel] = useState(false);
@@ -37,7 +37,335 @@ export default function AnswerFrameworkPrototype() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   const [focusChips, setFocusChips] = useState([]);
-  
+
+  // Version history state
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const [currentVersion, setCurrentVersion] = useState(4);
+  const [previewingVersion, setPreviewingVersion] = useState(null);
+  const versionDropdownRef = useRef(null);
+
+  // Refine with AI state
+  const [isRefining, setIsRefining] = useState(false);
+  const [isReviewingChanges, setIsReviewingChanges] = useState(false);
+  const [refinedContent, setRefinedContent] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
+  const [showDiff, setShowDiff] = useState(false);
+
+  // Auto-save indicator state
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'editing' | 'saved'
+  const saveTimeoutRef = useRef(null);
+
+  // Auto-save effect - shows "Saved" after user stops typing
+  useEffect(() => {
+    if (!directInput.trim()) {
+      setSaveStatus('idle');
+      return;
+    }
+
+    // When content changes, mark as editing
+    setSaveStatus('editing');
+
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // After 2 seconds of no changes, mark as saved
+    saveTimeoutRef.current = setTimeout(() => {
+      setSaveStatus('saved');
+
+      // Hide the "Saved" indicator after 3 seconds
+      setTimeout(() => {
+        setSaveStatus('idle');
+      }, 3000);
+    }, 2000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [directInput]);
+
+  const versions = {
+    1: {
+      label: 'Empty',
+      badge: { text: '○ Empty', bgColor: 'bg-gray-100', textColor: 'text-gray-500' },
+      content: '',
+      color: 'gray'
+    },
+    2: {
+      label: 'AI draft',
+      badge: { text: '✨ AI Draft', bgColor: 'bg-teal-50', textColor: 'text-teal-700' },
+      content: 'Retrofitting existing doors with the Assa Abloy system is generally feasible for most standard commercial door frames. Key considerations include door thickness (minimum 1.75"), existing cutout compatibility, and power supply routing. The wireless models (Aperio series) offer easier installation without door modifications.',
+      color: 'teal'
+    },
+    3: {
+      label: 'Your edit',
+      badge: { text: '✎ Your Edit', bgColor: 'bg-amber-50', textColor: 'text-amber-700' },
+      content: 'Retrofitting doors with Assa Abloy is feasible for most commercial frames. Requirements: door thickness ≥1.75", compatible cutouts, power routing. I recommend the Aperio wireless series. NOTE: Verify frame compatibility during site survey next week.',
+      color: 'amber'
+    },
+    4: {
+      label: 'Refined',
+      badge: { text: '✓ Refined', bgColor: 'bg-green-50', textColor: 'text-green-700' },
+      content: 'Retrofitting doors with the Assa Abloy system is feasible for most commercial door frames. Key requirements: door thickness ≥1.75", compatible cutouts, and proper power routing. The Aperio wireless series is recommended for easier installation. Action item: Verify frame compatibility during the site survey next week.',
+      color: 'green'
+    }
+  };
+
+  // Close version dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(e.target)) {
+        setShowVersionDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectVersion = (num) => {
+    const version = versions[num];
+    if (num === currentVersion) {
+      setPreviewingVersion(null);
+    } else {
+      setPreviewingVersion(num);
+    }
+    setDirectInput(version.content);
+    setShowVersionDropdown(false);
+  };
+
+  const restoreVersion = () => {
+    if (!previewingVersion) return;
+    setCurrentVersion(previewingVersion);
+    setPreviewingVersion(null);
+  };
+
+  const cancelPreview = () => {
+    setPreviewingVersion(null);
+    setDirectInput(versions[currentVersion].content);
+  };
+
+  // Refine with AI handlers
+  const handleRefineWithAI = () => {
+    if (!directInput.trim()) return;
+
+    // Store original content and start refining
+    setOriginalContent(directInput);
+    setIsRefining(true);
+    setShowDiff(false);
+
+    // Simulate AI refinement (2 seconds)
+    setTimeout(() => {
+      // Generate refined content (in real app, this would be an API call)
+      const refined = `Retrofitting doors with the Assa Abloy system is feasible for most commercial door frames. **Key requirements:** door thickness ≥1.75", compatible cutouts, and proper power routing. The Aperio wireless series is recommended for easier installation. **Action item:** Verify frame compatibility during the site survey next week.`;
+
+      setRefinedContent(refined);
+      setIsRefining(false);
+      setIsReviewingChanges(true);
+    }, 2000);
+  };
+
+  const handleDiscardChanges = () => {
+    setIsReviewingChanges(false);
+    setRefinedContent('');
+    setShowDiff(false);
+    // Keep original content in directInput
+  };
+
+  const handleAcceptAndEdit = () => {
+    setDirectInput(refinedContent);
+    setIsReviewingChanges(false);
+    setRefinedContent('');
+    setShowDiff(false);
+  };
+
+  const handleAcceptAndSubmit = () => {
+    setDirectInput(refinedContent);
+    setIsReviewingChanges(false);
+    setRefinedContent('');
+    setShowDiff(false);
+    // In real app, would trigger submit
+  };
+
+  // Panel drag and resize state
+  const [panelBounds, setPanelBounds] = useState({
+    x: null, // null means use default positioning
+    y: null,
+    width: null,
+    height: null
+  });
+  const [isPanelDragging, setIsPanelDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeDirection, setResizeDirection] = useState(null);
+  const panelRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0, panelX: 0, panelY: 0 });
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0, panelX: 0, panelY: 0 });
+
+  // Panel drag handlers
+  const handlePanelDragStart = (e) => {
+    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('textarea')) return;
+    e.preventDefault();
+
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const rect = panel.getBoundingClientRect();
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      panelX: panelBounds.x ?? rect.left,
+      panelY: panelBounds.y ?? rect.top
+    };
+
+    // Initialize bounds if not set
+    if (panelBounds.x === null) {
+      setPanelBounds(prev => ({
+        ...prev,
+        x: rect.left,
+        y: rect.top,
+        width: prev.width ?? rect.width,
+        height: prev.height ?? rect.height
+      }));
+    }
+
+    setIsPanelDragging(true);
+  };
+
+  const handlePanelDragMove = (e) => {
+    if (!isPanelDragging) return;
+
+    const deltaX = e.clientX - dragStartRef.current.x;
+    const deltaY = e.clientY - dragStartRef.current.y;
+
+    setPanelBounds(prev => ({
+      ...prev,
+      x: dragStartRef.current.panelX + deltaX,
+      y: dragStartRef.current.panelY + deltaY
+    }));
+  };
+
+  const handlePanelDragEnd = () => {
+    setIsPanelDragging(false);
+  };
+
+  // Panel resize handlers
+  const handleResizeStart = (e, direction) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const rect = panel.getBoundingClientRect();
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: panelBounds.width ?? rect.width,
+      height: panelBounds.height ?? rect.height,
+      panelX: panelBounds.x ?? rect.left,
+      panelY: panelBounds.y ?? rect.top
+    };
+
+    // Initialize bounds if not set
+    if (panelBounds.x === null) {
+      setPanelBounds({
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height
+      });
+    }
+
+    setResizeDirection(direction);
+    setIsResizing(true);
+  };
+
+  const handleResizeMove = (e) => {
+    if (!isResizing || !resizeDirection) return;
+
+    const deltaX = e.clientX - resizeStartRef.current.x;
+    const deltaY = e.clientY - resizeStartRef.current.y;
+    const minWidth = 320;
+    const minHeight = 300;
+
+    setPanelBounds(prev => {
+      const newBounds = { ...prev };
+
+      if (resizeDirection.includes('e')) {
+        newBounds.width = Math.max(minWidth, resizeStartRef.current.width + deltaX);
+      }
+      if (resizeDirection.includes('w')) {
+        const newWidth = Math.max(minWidth, resizeStartRef.current.width - deltaX);
+        newBounds.width = newWidth;
+        newBounds.x = resizeStartRef.current.panelX + (resizeStartRef.current.width - newWidth);
+      }
+      if (resizeDirection.includes('s')) {
+        newBounds.height = Math.max(minHeight, resizeStartRef.current.height + deltaY);
+      }
+      if (resizeDirection.includes('n')) {
+        const newHeight = Math.max(minHeight, resizeStartRef.current.height - deltaY);
+        newBounds.height = newHeight;
+        newBounds.y = resizeStartRef.current.panelY + (resizeStartRef.current.height - newHeight);
+      }
+
+      return newBounds;
+    });
+  };
+
+  const handleResizeEnd = () => {
+    setIsResizing(false);
+    setResizeDirection(null);
+  };
+
+  // Global mouse move/up listeners for drag and resize
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (isPanelDragging) {
+        handlePanelDragMove(e);
+      } else if (isResizing) {
+        handleResizeMove(e);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isPanelDragging) {
+        handlePanelDragEnd();
+      }
+      if (isResizing) {
+        handleResizeEnd();
+      }
+    };
+
+    if (isPanelDragging || isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = isPanelDragging ? 'grabbing' :
+        resizeDirection?.includes('n') && resizeDirection?.includes('e') ? 'nesw-resize' :
+        resizeDirection?.includes('n') && resizeDirection?.includes('w') ? 'nwse-resize' :
+        resizeDirection?.includes('s') && resizeDirection?.includes('e') ? 'nwse-resize' :
+        resizeDirection?.includes('s') && resizeDirection?.includes('w') ? 'nesw-resize' :
+        resizeDirection?.includes('n') || resizeDirection?.includes('s') ? 'ns-resize' :
+        'ew-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isPanelDragging, isResizing, resizeDirection]);
+
+  // Reset panel bounds when panel closes
+  useEffect(() => {
+    if (!showEnginePanel) {
+      setPanelBounds({ x: null, y: null, width: null, height: null });
+    }
+  }, [showEnginePanel]);
+
   const loadingSteps = [
     'Analyzing your question...',
     'Identifying key themes...',
@@ -162,7 +490,10 @@ export default function AnswerFrameworkPrototype() {
   const handleStartEngine = () => {
     setShowEnginePanel(true);
     setPanelCollapsed(false);
-    setActiveConsideration(null);
+    // Select the first consideration by default
+    const firstConsideration = considerations[0];
+    setActiveConsideration(firstConsideration);
+    setChatMessages([{ role: 'assistant', content: firstConsideration.clarifyingQuestion }]);
   };
 
   const handleSelectConsideration = (consideration) => {
@@ -525,23 +856,35 @@ export default function AnswerFrameworkPrototype() {
   };
 
   const getPanelStyles = () => {
-    const base = 'bg-white shadow-2xl flex flex-col rounded-2xl sm:rounded-2xl overflow-hidden';
+    const base = 'bg-white shadow-2xl flex flex-col rounded-2xl overflow-hidden';
     const hasChat = activeConsideration !== null;
-    // Mobile: full width, Desktop: fixed widths
-    const panelWidth = hasChat 
-      ? 'w-full sm:w-[800px] sm:max-w-[calc(100%-2rem)]' 
-      : 'w-full sm:w-[320px]';
-    
-    switch (panelPosition) {
-      case 'left': 
-        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:left-0 sm:right-auto ${panelWidth}`;
-      case 'right': 
-        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto ${panelWidth}`;
-      case 'bottom': 
-        return `${base} absolute left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 bottom-0 h-[70vh] sm:h-[50vh] sm:max-h-[500px] w-full sm:max-w-4xl rounded-b-none`;
-      default: 
-        return `${base} absolute inset-0 sm:top-0 sm:bottom-0 sm:right-0 sm:left-auto ${panelWidth}`;
+
+    // If custom bounds are set (user has dragged/resized), use fixed positioning
+    if (panelBounds.x !== null) {
+      return {
+        className: `${base} fixed`,
+        style: {
+          left: panelBounds.x,
+          top: panelBounds.y,
+          width: panelBounds.width || (hasChat ? 680 : 320),
+          height: panelBounds.height || 480
+        }
+      };
     }
+
+    // Default: floating panel with fixed size (not full height)
+    // Mobile: full screen, Desktop: floating panel
+    const defaultWidth = hasChat ? 680 : 320;
+    const defaultHeight = 480;
+
+    return {
+      className: `${base} absolute inset-0 sm:inset-auto sm:left-4 sm:top-1/2 sm:-translate-y-1/2`,
+      style: {
+        width: window.innerWidth >= 640 ? defaultWidth : '100%',
+        height: window.innerWidth >= 640 ? defaultHeight : '100%',
+        maxHeight: window.innerWidth >= 640 ? 'calc(100vh - 2rem)' : '100%'
+      }
+    };
   };
 
   // Handle continue after snippet added - ask follow-up question
@@ -991,9 +1334,7 @@ export default function AnswerFrameworkPrototype() {
   // Considerations List Panel
   const ConsiderationsPanel = () => (
     <div className="flex flex-col h-full">
-      <p className="text-sm text-gray-500 mb-4">Select a consideration to explore:</p>
-
-      <div className="flex-1 overflow-auto space-y-2">
+      <div className="flex-1 overflow-auto">
         {considerations.map((consideration) => {
           const isCompleted = snippets.some(s => s.consideration === consideration.title);
           const isActive = activeConsideration?.id === consideration.id;
@@ -1001,23 +1342,39 @@ export default function AnswerFrameworkPrototype() {
             <div
               key={consideration.id}
               onClick={() => handleSelectConsideration(consideration)}
-              className={`p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                isActive ? 'border-teal-500 bg-teal-50 shadow-md'
-                : isCompleted ? 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100'
-                : 'border-gray-100 hover:border-teal-300 hover:bg-teal-50'
+              className={`flex items-center gap-3 px-3 py-3 cursor-pointer transition-all border-l-2 ${
+                isActive
+                  ? 'border-l-teal-500 bg-teal-50/50'
+                  : 'border-l-transparent hover:bg-gray-50'
               }`}
             >
-              <div className="flex items-start gap-2">
-                <div className="flex-1 min-w-0">
-                  <h4 className={`text-sm font-medium ${isActive ? 'text-teal-800' : isCompleted ? 'text-green-800' : 'text-gray-900'}`}>
-                    {consideration.title}
-                  </h4>
-                  <p className={`text-xs mt-0.5 ${isActive ? 'text-teal-600' : isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
-                    {isCompleted ? '✓ Snippet added · Tap to continue' : consideration.description}
-                  </p>
-                </div>
-                {!isActive && <ChevronRight size={16} className={`flex-shrink-0 mt-0.5 ${isCompleted ? 'text-green-400' : 'text-gray-400'}`} />}
+              {/* Grip icon */}
+              <div className={`flex-shrink-0 ${isActive ? 'text-teal-400' : 'text-gray-300'}`}>
+                <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+                  <rect x="0" y="0" width="12" height="2" rx="1" />
+                  <rect x="0" y="6" width="12" height="2" rx="1" />
+                  <rect x="0" y="12" width="12" height="2" rx="1" />
+                </svg>
               </div>
+
+              {/* Title */}
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm font-medium leading-snug ${
+                  isActive ? 'text-gray-900' : isCompleted ? 'text-gray-700' : 'text-gray-700'
+                }`}>
+                  {consideration.title}
+                </span>
+              </div>
+
+              {/* Chevron for active item */}
+              {isActive && (
+                <ChevronRight size={16} className="flex-shrink-0 text-teal-500" />
+              )}
+
+              {/* Completed indicator */}
+              {isCompleted && !isActive && (
+                <Check size={14} className="flex-shrink-0 text-green-500" />
+              )}
             </div>
           );
         })}
@@ -1511,7 +1868,7 @@ export default function AnswerFrameworkPrototype() {
               <div className="flex items-center gap-3">
                 {/* Subtle context window link */}
                 {snippets.length > 0 && !isDragging && (
-                  <button 
+                  <button
                     onClick={() => setShowContextWindow(!showContextWindow)}
                     className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1"
                   >
@@ -1519,6 +1876,70 @@ export default function AnswerFrameworkPrototype() {
                     <ChevronDown size={12} className={`transition-transform ${showContextWindow ? 'rotate-180' : ''}`} />
                   </button>
                 )}
+
+                {/* Version Dropdown - only show when there's content */}
+                {directInput.trim() && (
+                  <div className="relative" ref={versionDropdownRef}>
+                    <button
+                      onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                      className={`flex items-center gap-1.5 text-gray-500 text-sm font-medium hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors ${showVersionDropdown ? 'bg-gray-100' : ''}`}
+                    >
+                      <Clock size={16} />
+                      <span>{versions[previewingVersion || currentVersion].label}</span>
+                      <ChevronDown size={12} className={`transition-transform ${showVersionDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showVersionDropdown && (
+                    <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg border border-gray-200 shadow-lg z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="p-2 border-b border-gray-100">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide px-2">Version History</span>
+                      </div>
+
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {[4, 3, 2, 1].map((num) => {
+                          const version = versions[num];
+                          const isSelected = previewingVersion ? previewingVersion === num : currentVersion === num;
+                          const dotColors = {
+                            green: 'bg-green-500',
+                            amber: 'bg-amber-500',
+                            teal: 'bg-teal-500',
+                            gray: 'bg-gray-300'
+                          };
+                          const timeLabels = ['10m ago', '5m ago', '2m ago', 'Just now'];
+
+                          return (
+                            <div
+                              key={num}
+                              onClick={() => selectVersion(num)}
+                              className={`px-2 py-1.5 mx-1 rounded cursor-pointer transition-colors ${
+                                isSelected ? 'bg-teal-50' : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 rounded-full ${dotColors[version.color]}`} />
+                                  <span className={`text-sm font-medium ${num === 1 ? 'text-gray-500' : 'text-gray-900'}`}>
+                                    {version.label}
+                                  </span>
+                                  {num === currentVersion && !previewingVersion && (
+                                    <span className="text-xs text-teal-600 font-medium">Current</span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-400">{timeLabels[num - 1]}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="p-2 border-t border-gray-100 bg-gray-50 rounded-b-lg">
+                        <p className="text-xs text-gray-500 px-2">Click to preview · Auto-saved on changes</p>
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                )}
+
                 <span className="text-sm text-gray-500">Assigned to: You</span>
               </div>
             </div>
@@ -1551,61 +1972,235 @@ export default function AnswerFrameworkPrototype() {
             {/* Write directly textarea with integrated actions */}
             {!isDragging && (
               <div className="mb-4">
-                <div className={`relative border rounded-xl transition-all ${directInput.trim() ? 'border-teal-300 shadow-sm' : 'border-gray-200'}`}>
-                  {isBuildingAnswer && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-amber-50 rounded-xl flex flex-col items-center justify-center z-10">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="relative">
-                          <Sparkles size={24} className="text-teal-500 animate-pulse" />
-                          <div className="absolute inset-0 animate-ping">
-                            <Sparkles size={24} className="text-teal-300" />
+                {/* STATE: Refining */}
+                {isRefining && (
+                  <div className="border border-teal-200 rounded-xl bg-teal-50/30">
+                    <div className="px-3 pt-2.5 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
+                        ✎ Edited
+                      </span>
+                    </div>
+                    <div className="p-3 pt-2 text-sm text-gray-400 min-h-[7rem]">
+                      {originalContent}
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2.5 border-t border-teal-100 bg-teal-50 rounded-b-xl">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                        <span className="text-teal-700 text-sm font-medium">Refining your answer...</span>
+                      </div>
+                      <button
+                        onClick={() => setIsRefining(false)}
+                        className="px-3 py-1.5 text-gray-500 text-sm font-medium hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* STATE: Review Changes */}
+                {isReviewingChanges && !isRefining && (
+                  <div className="border-2 border-teal-400 rounded-xl ring-2 ring-teal-100">
+                    <div className="px-3 pt-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full">
+                          ✨ Refined
+                        </span>
+                        <span className="text-xs text-gray-500">Review changes below</span>
+                      </div>
+                      <button
+                        onClick={() => setShowDiff(!showDiff)}
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          showDiff
+                            ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {showDiff ? 'Hide diff' : 'Show diff'}
+                      </button>
+                    </div>
+
+                    {/* Clean view (default) */}
+                    {!showDiff && (
+                      <div className="p-3 pt-2 text-sm text-gray-700 min-h-[7rem]">
+                        {refinedContent}
+                      </div>
+                    )}
+
+                    {/* Diff view */}
+                    {showDiff && (
+                      <div className="p-3 pt-2 text-sm min-h-[7rem]">
+                        <div className="mb-2 text-xs text-gray-500 font-medium">Changes highlighted:</div>
+                        <div className="space-y-2">
+                          <div className="p-2 bg-red-50 rounded border-l-2 border-red-300">
+                            <span className="text-xs text-red-600 font-medium">Removed:</span>
+                            <p className="text-red-800 line-through text-sm mt-1">{originalContent}</p>
+                          </div>
+                          <div className="p-2 bg-green-50 rounded border-l-2 border-green-300">
+                            <span className="text-xs text-green-600 font-medium">Added:</span>
+                            <p className="text-green-800 text-sm mt-1">{refinedContent}</p>
                           </div>
                         </div>
-                        <span className="text-sm font-medium text-teal-700">Building your answer...</span>
                       </div>
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    )}
+
+                    <div className="flex items-center justify-between px-3 py-2.5 border-t border-teal-100 bg-teal-50/50 rounded-b-xl">
+                      <button
+                        onClick={handleDiscardChanges}
+                        className="flex items-center gap-1.5 text-gray-500 text-sm font-medium hover:text-gray-700"
+                      >
+                        ← Discard changes
+                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleAcceptAndEdit}
+                          className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
+                        >
+                          Accept & Edit
+                        </button>
+                        <button
+                          onClick={handleAcceptAndSubmit}
+                          className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 flex items-center gap-1"
+                        >
+                          Accept & Submit
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
                     </div>
-                  )}
-                  <textarea
-                    value={directInput}
-                    onChange={(e) => setDirectInput(e.target.value)}
-                    placeholder="Write your answer directly..."
-                    className={`w-full h-28 p-3 rounded-t-xl resize-none focus:outline-none text-sm border-0 ${isBuildingAnswer ? 'opacity-0' : ''}`}
-                  />
-                  {/* Integrated action bar */}
-                  <div className={`flex items-center justify-between px-3 py-2 bg-gray-50 rounded-b-xl border-t border-gray-100 ${isBuildingAnswer ? 'opacity-0' : ''}`}>
-                    <button 
-                      onClick={() => {
-                        setPanelCollapsed(false);
-                        setShowEnginePanel(true);
-                      }}
-                      className={`flex items-center gap-1.5 text-xs transition-colors ${
-                        directInput.trim() 
-                          ? 'text-gray-500 hover:text-teal-600' 
-                          : 'text-gray-300 cursor-default'
-                      }`}
-                      disabled={!directInput.trim()}
-                    >
-                      <Sparkles size={14} />
-                      <span>Refine with AI</span>
-                    </button>
-                    <button 
-                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-                        directInput.trim()
-                          ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      }`}
-                      disabled={!directInput.trim()}
-                    >
-                      Submit Answer
-                      <ChevronRight size={14} />
-                    </button>
                   </div>
-                </div>
+                )}
+
+                {/* STATE: Normal (editable) */}
+                {!isRefining && !isReviewingChanges && (
+                  <div className={`relative border rounded-xl transition-all ${
+                    previewingVersion
+                      ? 'border-amber-300'
+                      : directInput.trim()
+                        ? 'border-teal-300 shadow-sm'
+                        : 'border-gray-200'
+                  }`}>
+                    {isBuildingAnswer && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-teal-50 to-amber-50 rounded-xl flex flex-col items-center justify-center z-10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="relative">
+                            <Sparkles size={24} className="text-teal-500 animate-pulse" />
+                            <div className="absolute inset-0 animate-ping">
+                              <Sparkles size={24} className="text-teal-300" />
+                            </div>
+                          </div>
+                          <span className="text-sm font-medium text-teal-700">Building your answer...</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Version Badge - only show when there's content */}
+                    {!isBuildingAnswer && directInput.trim() && (
+                      <div className="px-3 pt-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const displayVersion = versions[previewingVersion || currentVersion];
+                            return (
+                              <>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 ${displayVersion.badge.bgColor} ${displayVersion.badge.textColor} text-xs font-medium rounded-full`}>
+                                  {displayVersion.badge.text}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {previewingVersion ? 'Previewing' : 'Current version'}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Auto-save indicator */}
+                        <div className={`flex items-center gap-1 text-xs transition-opacity duration-300 ${
+                          saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
+                        }`}>
+                          {saveStatus === 'editing' && (
+                            <>
+                              <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                              <span className="text-gray-400">Editing...</span>
+                            </>
+                          )}
+                          {saveStatus === 'saved' && (
+                            <>
+                              <Check size={12} className="text-green-500" />
+                              <span className="text-green-600">Saved</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <textarea
+                      value={directInput}
+                      onChange={(e) => setDirectInput(e.target.value)}
+                      placeholder="Write your answer directly..."
+                      className={`w-full h-28 p-3 ${isBuildingAnswer ? 'rounded-t-xl' : ''} resize-none focus:outline-none text-sm border-0 ${isBuildingAnswer ? 'opacity-0' : ''}`}
+                    />
+
+                    {/* Restore bar - shown when previewing old version */}
+                    {previewingVersion && !isBuildingAnswer && (
+                      <div className="flex items-center justify-between px-3 py-2 bg-amber-50 border-t border-amber-200">
+                        <span className="text-sm text-amber-800">
+                          Viewing <strong>{versions[previewingVersion].label}</strong>
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={cancelPreview}
+                            className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={restoreVersion}
+                            className="px-3 py-1 bg-amber-500 text-white rounded text-sm font-medium hover:bg-amber-600 transition-colors"
+                          >
+                            Restore
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Normal action bar - hidden when previewing */}
+                    {!previewingVersion && !isBuildingAnswer && (
+                      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-b-xl border-t border-gray-100">
+                        <button
+                          onClick={handleRefineWithAI}
+                          className={`flex items-center gap-1.5 text-xs transition-colors ${
+                            directInput.trim()
+                              ? 'text-teal-600 hover:text-teal-700'
+                              : 'text-gray-300 cursor-default'
+                          }`}
+                          disabled={!directInput.trim()}
+                        >
+                          <Sparkles size={14} />
+                          <span>Refine with AI</span>
+                        </button>
+                        <button
+                          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                            directInput.trim()
+                              ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          }`}
+                          disabled={!directInput.trim()}
+                        >
+                          Submit Answer
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1659,7 +2254,10 @@ export default function AnswerFrameworkPrototype() {
                         setIsLoadingConsiderations(false);
                         setShowEnginePanel(true);
                         setPanelCollapsed(false);
-                        setActiveConsideration(null);
+                        // Select the first consideration by default
+                        const firstConsideration = considerations[0];
+                        setActiveConsideration(firstConsideration);
+                        setChatMessages([{ role: 'assistant', content: firstConsideration.clarifyingQuestion }]);
                       }, 600);
                       return prev;
                     }
@@ -1802,47 +2400,101 @@ export default function AnswerFrameworkPrototype() {
               </div>
             ) : (
               /* Expanded panel */
-              <div className={`${getPanelStyles()} pointer-events-auto`}>
-                <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700 rounded-t-2xl sm:rounded-t-2xl flex-shrink-0">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                        <Sparkles size={14} className="text-white sm:hidden" />
-                        <Sparkles size={16} className="text-white hidden sm:block" />
-                      </div>
-                      <span className="font-semibold text-white text-sm sm:text-base">Answer Engine</span>
+              (() => {
+                const panelStyles = getPanelStyles();
+                return (
+                  <div
+                    ref={panelRef}
+                    className={`${panelStyles.className} pointer-events-auto`}
+                    style={panelStyles.style}
+                  >
+                    {/* Resize handles - only visible on desktop when panel is draggable */}
+                    <div className="hidden sm:block">
+                      {/* Corner handles */}
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'nw')}
+                        className="absolute -top-1 -left-1 w-3 h-3 cursor-nwse-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'ne')}
+                        className="absolute -top-1 -right-1 w-3 h-3 cursor-nesw-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'sw')}
+                        className="absolute -bottom-1 -left-1 w-3 h-3 cursor-nesw-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'se')}
+                        className="absolute -bottom-1 -right-1 w-3 h-3 cursor-nwse-resize z-10"
+                      />
+                      {/* Edge handles */}
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'n')}
+                        className="absolute -top-1 left-3 right-3 h-2 cursor-ns-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 's')}
+                        className="absolute -bottom-1 left-3 right-3 h-2 cursor-ns-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'w')}
+                        className="absolute top-3 bottom-3 -left-1 w-2 cursor-ew-resize z-10"
+                      />
+                      <div
+                        onMouseDown={(e) => handleResizeStart(e, 'e')}
+                        className="absolute top-3 bottom-3 -right-1 w-2 cursor-ew-resize z-10"
+                      />
                     </div>
-                    {snippets.length > 0 && (
-                      <span className="text-[10px] sm:text-xs text-white/70 truncate">
-                        ({snippets.length} snippet{snippets.length !== 1 ? 's' : ''})
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button 
-                      onClick={() => setPanelCollapsed(true)}
-                      className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
-                      title="Minimize"
-                    >
-                      <Minimize2 size={16} />
-                    </button>
-                    <button onClick={handleClosePanel} className="ml-1 p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors">
-                      <X size={18} />
-                    </button>
-                  </div>
-                </div>
 
-                <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
-                  <div className={`${activeConsideration ? 'hidden sm:block sm:w-1/4 sm:min-w-[200px] border-b sm:border-b-0 sm:border-r border-gray-200' : 'flex-1'} p-4 overflow-auto transition-all duration-300`}>
-                    {ConsiderationsPanel()}
-                  </div>
-                  {activeConsideration && (
-                    <div className="flex-1 sm:w-3/4 p-4 overflow-hidden bg-gray-50/50">
-                      {ChatPanel()}
+                    {/* Header - entire bar is draggable */}
+                    <div
+                      onMouseDown={handlePanelDragStart}
+                      className={`flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-teal-600 to-teal-700 rounded-t-2xl sm:rounded-t-2xl flex-shrink-0 ${isPanelDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                            <Sparkles size={14} className="text-white sm:hidden" />
+                            <Sparkles size={16} className="text-white hidden sm:block" />
+                          </div>
+                          <span className="font-semibold text-white text-sm sm:text-base">Answer Engine</span>
+                        </div>
+                        {snippets.length > 0 && (
+                          <span className="text-[10px] sm:text-xs text-white/70 truncate">
+                            ({snippets.length} snippet{snippets.length !== 1 ? 's' : ''})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setPanelCollapsed(true)}
+                          className="p-1.5 text-white border border-white/30 rounded-md hover:bg-white/10 transition-colors"
+                          title="Minimize"
+                        >
+                          <Minimize2 size={16} />
+                        </button>
+                        <button
+                          onClick={handleClosePanel}
+                          className="p-1.5 text-white border border-white/30 rounded-md hover:bg-white/10 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
+
+                    <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
+                      <div className={`${activeConsideration ? 'hidden sm:block sm:w-1/4 sm:min-w-[200px] border-b sm:border-b-0 sm:border-r border-gray-200' : 'flex-1'} p-4 overflow-auto transition-all duration-300`}>
+                        {ConsiderationsPanel()}
+                      </div>
+                      {activeConsideration && (
+                        <div className="flex-1 sm:w-3/4 p-4 overflow-hidden bg-gray-50/50">
+                          {ChatPanel()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
             )}
           </div>
         </>
